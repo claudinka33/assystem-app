@@ -1,6 +1,8 @@
 // Middleware helper: obnavlja Supabase sejo na vsaki strani
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+
+type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -15,7 +17,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieToSet[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
@@ -30,7 +32,6 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Pridobi prijavljenega uporabnika
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -41,14 +42,12 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/register") ||
     pathname.startsWith("/auth");
 
-  // Če ni prijavljen in ni na auth strani, preusmeri na /login
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Če je prijavljen in poskuša do /login, preusmeri na dashboard
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
